@@ -1,7 +1,7 @@
-import einops
-import flax
-import jax
-import jax.numpy as jnp
+# import einops
+# import flax
+# import jax
+# import jax.numpy as jnp
 import numpy as np
 import numpy.random as npr
 import math
@@ -272,9 +272,15 @@ def linear(inputs, weight, bias=None):
 
 
 def fa_group_linear(inputs, fw_weight, fw_bias, bw_weight):
-    outputs = torch.einsum("npgc,pgcd->npgd", inputs, fw_weight)
-    bw_outputs = torch.einsum("npgc,pgcd->npgd", inputs, bw_weight)
-    return torch.add(outputs, bw_outputs, alpha=-1.0).detach() + bw_outputs + fw_bias
+    if len(fw_weight.shape) == 4:
+        outputs = torch.einsum("npgc,pgcd->npgd", inputs, fw_weight)
+        bw_outputs = torch.einsum("npgc,pgcd->npgd", inputs, bw_weight)
+    elif len(fw_weight.shape) == 3:
+        outputs = torch.einsum("npgc,gcd->npgd", inputs, fw_weight)
+        bw_outputs = torch.einsum("npgc,gcd->npgd", inputs, bw_weight)
+    # outputs = torch.einsum("npgc,pgcd->npgd", inputs, fw_weight)
+    # bw_outputs = torch.einsum("npgc,pgcd->npgd", inputs, bw_weight)
+    return (outputs - bw_outputs).detach() + bw_outputs + fw_bias 
 
 
 # def group_linear(inputs, weight, bias=None):
@@ -290,7 +296,11 @@ def fa_group_linear(inputs, fw_weight, fw_bias, bw_weight):
 
 
 def group_linear(inputs, weight, bias=None):
-    outputs = torch.einsum("npgc,pgcd->npgd", inputs, weight)
+    if len(weight.shape) == 4:
+        outputs = torch.einsum("npgc,pgcd->npgd", inputs, weight)
+    elif len(weight.shape) == 3:
+        outputs = torch.einsum("npgc,gcd->npgd", inputs, weight)
+    # outputs = torch.einsum("npgc,pgcd->npgd", inputs, weight)
     if bias is not None:
         outputs = outputs + bias
     return outputs
